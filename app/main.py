@@ -13,7 +13,11 @@ if __name__ == '__main__':
     windowSpec = Window.partitionBy(year(col('Date'))).orderBy(col('Close').desc(), col("Date"))
     hcp = df.withColumn('rank', row_number().over(windowSpec)) \
         .filter(col('rank') == 1) \
-        .drop('rank')
+        .drop('rank') \
+        .select('Date', 'Close', 'Volume')
 
     hcp.show()
 
+    hcp.explain(extended=True)
+
+    print("*** end ***")
