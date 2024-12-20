@@ -3,10 +3,12 @@ import time
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import col
 
+# we fixed the shuffle here
+
 if __name__ == '__main__':
 
     # Initialize Spark session
-    spark = SparkSession.builder.master("local").appName("ShuffleExample").getOrCreate()
+    spark = SparkSession.builder.master("local").appName("ShuffleFixedExample").getOrCreate()
 
     # Sample users dataset
     users_data = [(1, "Alice"), (2, "Bob"), (3, "Charlie"), (4, "David"), (5, "Eve")]
@@ -22,9 +24,15 @@ if __name__ == '__main__':
     users_df.show()
     orders_df.show()
 
-    # Step 2: Join Without Any Partitioning or Optimizations
+    # <<< Fix for avoiding shuffle >>> Repartition the users and orders datasets by user_id to reduce shuffling
+    users_df = users_df.repartition("user_id")
+    orders_df = orders_df.repartition("user_id")
+
     # Perform join operation without optimizations
     result_df = users_df.join(orders_df, on="user_id", how="inner")
+
+    # By repartitioning the DataFrames on the join key (user_id), Spark ensures that the data is already partitioned in a way that aligns with the join operation.
+    # This reduces the amount of shuffling required during the join, as the data is already partitioned correctly across the cluster.
 
     # Show the result
     result_df.show()
@@ -37,5 +45,6 @@ if __name__ == '__main__':
     # *(5) HashAggregate
     # +- Exchange hashpartitioning(column, 200    <<< show a shuffling
 
+    result_df.explain()
 
     time.sleep(3000)
